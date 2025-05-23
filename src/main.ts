@@ -1,11 +1,12 @@
 import { showUI, on, emit } from "@create-figma-plugin/utilities";
 import {
-  styleToVariableMap,
-  variableToVariableMap,
-  rgbToVariableMap,
+  styleToVariableMappings,
+  variableToVariableMappings,
+  rgbToVariableMappings,
   rgbToHex,
+  MappingEntry,
 } from "./mappings";
-import { extractVariableKey } from "./utils/extractVariableKey";
+import { extractPureKey } from "./utils/extractVariableKey";
 
 /**
  * Notifies the user of an error and emits a CONVERSION_ERROR event.
@@ -85,11 +86,11 @@ function convertFills(node: SceneNode, importedVariablesMap: Record<string, Vari
   // --- Process Fills by Style ---
   let fillStyleProcessed = false;
   if (node.fillStyleId && typeof node.fillStyleId === "string") {
-    const styleMapping = styleToVariableMap[node.fillStyleId];
-    if (styleMapping) {
-      const targetVariableFullId = styleMapping.variableId;
-      const targetVariableKey = extractVariableKey(targetVariableFullId);
-      const targetVariable = targetVariableKey ? importedVariablesMap[targetVariableKey] : null;
+    const styleKey = extractPureKey(node.fillStyleId);
+    const styleMapping = styleToVariableMappings.find(entry => entry.key === styleKey && entry.mappedKey);
+    if (styleMapping && styleMapping.mappedKey) {
+      const targetVariableKey = styleMapping.mappedKey;
+      const targetVariable = importedVariablesMap[targetVariableKey];
       if (targetVariable) {
         try {
           node.fillStyleId = "";
@@ -128,17 +129,17 @@ function convertFills(node: SceneNode, importedVariablesMap: Record<string, Vari
       if (fill.type === "SOLID") {
         const boundVar = fill.boundVariables?.color;
         if (boundVar) {
-          const varMapping = variableToVariableMap[boundVar.id];
-          if (varMapping) targetVariableKey = varMapping.variableId;
+          const varKey = extractPureKey(boundVar.id);
+          const varMapping = variableToVariableMappings.find(entry => entry.key === varKey && entry.mappedKey);
+          if (varMapping && varMapping.mappedKey) targetVariableKey = varMapping.mappedKey;
         } else {
           const hexColor = rgbToHex(fill.color);
-          const rgbMapping = rgbToVariableMap[hexColor];
-          if (rgbMapping) targetVariableKey = rgbMapping.variableId;
+          const rgbMapping = rgbToVariableMappings.find(entry => entry.key === hexColor && entry.mappedKey);
+          if (rgbMapping && rgbMapping.mappedKey) targetVariableKey = rgbMapping.mappedKey;
         }
 
         if (targetVariableKey) {
-          const key = extractVariableKey(targetVariableKey);
-          targetVariable = key ? importedVariablesMap[key] : null;
+          targetVariable = importedVariablesMap[targetVariableKey];
           if (targetVariable) {
             try {
               currentFills[i] = figma.variables.setBoundVariableForPaint(fill, "color", targetVariable);
@@ -179,11 +180,11 @@ function convertStrokes(node: SceneNode, importedVariablesMap: Record<string, Va
   // --- Process Strokes by Style ---
   let strokeStyleProcessed = false;
   if (node.strokeStyleId && typeof node.strokeStyleId === "string") {
-    const styleMapping = styleToVariableMap[node.strokeStyleId];
-    if (styleMapping) {
-      const targetVariableFullId = styleMapping.variableId;
-      const targetVariableKey = extractVariableKey(targetVariableFullId);
-      const targetVariable = targetVariableKey ? importedVariablesMap[targetVariableKey] : null;
+    const styleKey = extractPureKey(node.strokeStyleId);
+    const styleMapping = styleToVariableMappings.find(entry => entry.key === styleKey && entry.mappedKey);
+    if (styleMapping && styleMapping.mappedKey) {
+      const targetVariableKey = styleMapping.mappedKey;
+      const targetVariable = importedVariablesMap[targetVariableKey];
       if (targetVariable) {
         try {
           node.strokeStyleId = "";
@@ -222,17 +223,17 @@ function convertStrokes(node: SceneNode, importedVariablesMap: Record<string, Va
       if (stroke.type === "SOLID") {
         const boundVar = stroke.boundVariables?.color;
         if (boundVar) {
-          const varMapping = variableToVariableMap[boundVar.id];
-          if (varMapping) targetVariableKey = varMapping.variableId;
+          const varKey = extractPureKey(boundVar.id);
+          const varMapping = variableToVariableMappings.find(entry => entry.key === varKey && entry.mappedKey);
+          if (varMapping && varMapping.mappedKey) targetVariableKey = varMapping.mappedKey;
         } else {
           const hexColor = rgbToHex(stroke.color);
-          const rgbMapping = rgbToVariableMap[hexColor];
-          if (rgbMapping) targetVariableKey = rgbMapping.variableId;
+          const rgbMapping = rgbToVariableMappings.find(entry => entry.key === hexColor && entry.mappedKey);
+          if (rgbMapping && rgbMapping.mappedKey) targetVariableKey = rgbMapping.mappedKey;
         }
 
         if (targetVariableKey) {
-          const key = extractVariableKey(targetVariableKey);
-          targetVariable = key ? importedVariablesMap[key] : null;
+          targetVariable = importedVariablesMap[targetVariableKey];
           if (targetVariable) {
             try {
               currentStrokes[i] = figma.variables.setBoundVariableForPaint(stroke, "color", targetVariable);
@@ -282,17 +283,14 @@ export default function () {
 
     // Gather all variable keys from mappings
     const variableKeysToImportMap: { [key: string]: boolean } = {};
-    Object.values(styleToVariableMap).forEach((mapping) => {
-      const key = extractVariableKey(mapping.variableId);
-      if (key) variableKeysToImportMap[key] = true;
+    styleToVariableMappings.forEach((mapping) => {
+      if (mapping.mappedKey) variableKeysToImportMap[mapping.mappedKey] = true;
     });
-    Object.values(variableToVariableMap).forEach((mapping) => {
-      const key = extractVariableKey(mapping.variableId);
-      if (key) variableKeysToImportMap[key] = true;
+    variableToVariableMappings.forEach((mapping) => {
+      if (mapping.mappedKey) variableKeysToImportMap[mapping.mappedKey] = true;
     });
-    Object.values(rgbToVariableMap).forEach((mapping) => {
-      const key = extractVariableKey(mapping.variableId);
-      if (key) variableKeysToImportMap[key] = true;
+    rgbToVariableMappings.forEach((mapping) => {
+      if (mapping.mappedKey) variableKeysToImportMap[mapping.mappedKey] = true;
     });
 
     const uniqueVariableKeys = Object.keys(variableKeysToImportMap);
