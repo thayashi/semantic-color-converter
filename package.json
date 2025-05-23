@@ -10,12 +10,16 @@
     "@create-figma-plugin/build": "^4.0.0",
     "@create-figma-plugin/tsconfig": "^4.0.0",
     "@figma/plugin-typings": "1.109.0",
+    "@types/jest": "^29.5.14",
     "@types/prismjs": "1.26.3",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.3.4",
     "typescript": ">=5"
   },
   "scripts": {
     "build": "build-figma-plugin --typecheck --minify",
-    "watch": "build-figma-plugin --typecheck --watch"
+    "watch": "build-figma-plugin --typecheck --watch",
+    "test": "jest"
   },
   "figma-plugin": {
     "editorType": [

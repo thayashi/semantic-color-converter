@@ -7,6 +7,7 @@ import {
   MappingEntry,
 } from "./mappings";
 import { extractPureKey } from "./utils/extractVariableKey";
+import { collectTargetNodes } from "./logic";
 
 /**
  * Notifies the user of an error and emits a CONVERSION_ERROR event.
@@ -14,42 +15,6 @@ import { extractPureKey } from "./utils/extractVariableKey";
 function notifyAndEmitError(message: string) {
   figma.notify(message, { error: true });
   emit("CONVERSION_ERROR");
-}
-
-/**
- * Collects all relevant nodes from the selection that have fills and strokes,
- * including descendants of supported types.
- */
-function collectTargetNodes(selection: readonly SceneNode[]): SceneNode[] {
-  const targetNodeTypes: SceneNode["type"][] = [
-    "RECTANGLE",
-    "ELLIPSE",
-    "POLYGON",
-    "STAR",
-    "VECTOR",
-    "TEXT",
-    "FRAME",
-    "COMPONENT",
-    "INSTANCE",
-    "COMPONENT_SET",
-  ];
-
-  let allNodesToProcess: SceneNode[] = [];
-  for (const selectedNode of selection) {
-    if (targetNodeTypes.includes(selectedNode.type)) {
-      if ("fills" in selectedNode && "strokes" in selectedNode) {
-        allNodesToProcess.push(selectedNode);
-      }
-    }
-    if ("findAllWithCriteria" in selectedNode) {
-      const descendants = selectedNode.findAllWithCriteria({ types: targetNodeTypes });
-      const validDescendants = descendants.filter(
-        (n) => "fills" in n && "strokes" in n
-      ) as SceneNode[];
-      allNodesToProcess.push(...validDescendants);
-    }
-  }
-  return allNodesToProcess;
 }
 
 /**
