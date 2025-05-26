@@ -8,10 +8,13 @@ import {
   Columns,
   Stack,
   Divider,
+  Tabs,
+  Checkbox,
 } from '@create-figma-plugin/ui';
 import { emit, on } from '@create-figma-plugin/utilities';
 import { h } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
+import { defaultAdvancedMappings, AdvancedMappingEntry } from './advancedMappings';
 
 // Fallback for loading icon: use a spinning emoji or a simple text
 function LoadingIcon() {
@@ -51,14 +54,31 @@ function Plugin() {
   const [convertedNodes, setConvertedNodes] = useState<string>('N/A');
   const [status, setStatus] = useState<StatusType>("ready");
 
+  // タブ状態: "main" or "advanced"
+  const [tabId, setTabId] = useState<string>("main");
+  // Advanced Optionsのチェックボックス状態
+  const [advancedMappings, setAdvancedMappings] = useState<AdvancedMappingEntry[]>(
+    defaultAdvancedMappings.map((entry) => ({ ...entry }))
+  );
+
+  const handleAdvancedMappingChange = (id: string) => {
+    setAdvancedMappings((prev) =>
+      prev.map((entry) =>
+        entry.id === id ? { ...entry, enabled: !entry.enabled } : entry
+      )
+    );
+  };
+
   const handleConvertButtonClick = useCallback(function () {
     setProgressMessage('Starting conversion...');
     setIsProcessing(true);
     setTotalNodes('N/A');
     setConvertedNodes('N/A');
     setStatus("processing");
-    emit('CONVERT_COLORS');
-  }, []);
+    // 有効なAdvanced Mappingのみ送信
+    const enabledAdvancedMappings = advancedMappings.filter((entry) => entry.enabled);
+    emit('CONVERT_COLORS', { advancedMappings: enabledAdvancedMappings });
+  }, [advancedMappings]);
 
   on('PROGRESS_UPDATE', (message: string) => {
     setProgressMessage(message);
@@ -96,79 +116,139 @@ function Plugin() {
       </Stack>
       <Divider />
       <VerticalSpace space="small" />
-      <Stack space="extraSmall">
-        <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Node Summary</Text>
-        <Columns space="extraSmall">
+      {/* タブ切り替え */}
+      <Tabs
+        options={[
+          { value: "main", children: "Main" },
+          { value: "advanced", children: "Advanced Options" }
+        ]}
+        value={tabId}
+        onChange={event => setTabId(event.currentTarget.value)}
+      />
+      <VerticalSpace space="small" />
+      {tabId === "main" ? (
+        <div>
           <Stack space="extraSmall">
-            <Text style={{ color: "#888", fontSize: 11 }}>Total Nodes</Text>
-            <Text
-              style={{
-                fontWeight: 600,
-                fontSize: 16,
-                color: "#007AFF",
-                lineHeight: 1.2,
-              }}
-            >
-              {totalNodes}
-            </Text>
+            <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Node Summary</Text>
+            <Columns space="extraSmall">
+              <Stack space="extraSmall">
+                <Text style={{ color: "#888", fontSize: 11 }}>Total Nodes</Text>
+                <Text
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 16,
+                    color: "#007AFF",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {totalNodes}
+                </Text>
+              </Stack>
+              <Stack space="extraSmall">
+                <Text style={{ color: "#888", fontSize: 11 }}>Converted</Text>
+                <Text
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 16,
+                    color: "#18A058",
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {convertedNodes}
+                </Text>
+              </Stack>
+            </Columns>
           </Stack>
+          <VerticalSpace space="small" />
+          <Divider />
+          <VerticalSpace space="small" />
           <Stack space="extraSmall">
-            <Text style={{ color: "#888", fontSize: 11 }}>Converted</Text>
-            <Text
+            <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Status</Text>
+            <Columns space="extraSmall">
+              <span style={{ display: "flex", alignItems: "center" }}>
+                {statusInfo.icon}
+                <Text
+                  style={{
+                    color: statusInfo.color,
+                    fontWeight: 600,
+                    marginLeft: 6,
+                    fontSize: 14,
+                  }}
+                >
+                  {statusInfo.label}
+                </Text>
+              </span>
+            </Columns>
+            <TextboxMultiline
+              rows={2}
+              value={progressMessage}
               style={{
-                fontWeight: 600,
-                fontSize: 16,
-                color: "#18A058",
-                lineHeight: 1.2,
+                background: "#222",
+                color: "#fff",
+                border: "1px solid #444",
+                borderRadius: 6,
+                fontSize: 13,
+                marginTop: 2,
+                resize: "none",
+                minHeight: 32,
+                maxHeight: 38,
+                overflow: "hidden",
               }}
-            >
-              {convertedNodes}
-            </Text>
+            />
           </Stack>
-        </Columns>
-      </Stack>
-      <VerticalSpace space="small" />
-      <Divider />
-      <VerticalSpace space="small" />
-      <Stack space="extraSmall">
-        <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Status</Text>
-        <Columns space="extraSmall">
-          <span style={{ display: "flex", alignItems: "center" }}>
-            {statusInfo.icon}
-            <Text
-              style={{
-                color: statusInfo.color,
-                fontWeight: 600,
-                marginLeft: 6,
-                fontSize: 14,
-              }}
-            >
-              {statusInfo.label}
+          <VerticalSpace space="medium" />
+          <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
+            {isProcessing ? 'Converting...' : 'Convert Selected Frames'}
+          </Button>
+          <VerticalSpace space="small" />
+        </div>
+      ) : (
+        <div>
+          <Stack space="extraSmall">
+            <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>
+              Advanced Options
             </Text>
-          </span>
-        </Columns>
-        <TextboxMultiline
-          rows={2}
-          value={progressMessage}
-          style={{
-            background: "#222",
-            color: "#fff",
-            border: "1px solid #444",
-            borderRadius: 6,
-            fontSize: 13,
-            marginTop: 2,
-            resize: "none",
-            minHeight: 32,
-            maxHeight: 38,
-            overflow: "hidden",
-          }}
-        />
-      </Stack>
-      <VerticalSpace space="medium" />
-      <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
-        {isProcessing ? 'Converting...' : 'Convert Selected Frames'}
-      </Button>
-      <VerticalSpace space="small" />
+            <Text style={{ color: "#888", fontSize: 11, marginBottom: 4 }}>
+              Enable additional mappings for special cases. Use with caution.
+            </Text>
+            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>Fill (塗り) 用</Text>
+            {advancedMappings.filter(e => e.target === "fill").map((entry) => (
+              <Checkbox
+                key={entry.id}
+                value={entry.enabled}
+                onChange={() => handleAdvancedMappingChange(entry.id)}
+              >
+                {entry.label}
+                {entry.description ? (
+                  <span style={{ color: "#888", fontSize: 10, marginLeft: 4 }}>
+                    ({entry.description})
+                  </span>
+                ) : null}
+              </Checkbox>
+            ))}
+            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>Stroke (線) 用</Text>
+            {advancedMappings.filter(e => e.target === "stroke").map((entry) => (
+              <Checkbox
+                key={entry.id}
+                value={entry.enabled}
+                onChange={() => handleAdvancedMappingChange(entry.id)}
+              >
+                {entry.label}
+                {entry.description ? (
+                  <span style={{ color: "#888", fontSize: 10, marginLeft: 4 }}>
+                    ({entry.description})
+                  </span>
+                ) : null}
+              </Checkbox>
+            ))}
+          </Stack>
+          <VerticalSpace space="medium" />
+          <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
+            {isProcessing ? 'Converting...' : 'Convert Selected Frames'}
+          </Button>
+          <VerticalSpace space="small" />
+        </div>
+      )}
     </Container>
   );
 }

@@ -42,11 +42,64 @@ async function importVariables(variableKeys: string[]): Promise<Record<string, V
  * Attempts to convert the fills of a node to use variables.
  * Returns true if any conversion was made.
  */
-function convertFills(node: SceneNode, importedVariablesMap: Record<string, Variable>): boolean {
+function convertFills(
+  node: SceneNode,
+  importedVariablesMap: Record<string, Variable>,
+  enabledAdvancedMappings?: import("./advancedMappings").AdvancedMappingEntry[]
+): boolean {
   if (!("fills" in node && "strokes" in node)) return false;
 
   const originalFills = Array.isArray(node.fills) ? JSON.stringify(node.fills) : null;
   let changed = false;
+
+  // --- Advanced Mapping適用 ---
+  if (enabledAdvancedMappings && Array.isArray(node.fills)) {
+    // fillのみ適用
+    const fillMappings = enabledAdvancedMappings.filter(
+      (adv) => adv.target === "fill"
+    );
+    const currentFills = JSON.parse(JSON.stringify(node.fills)) as Paint[];
+    let advancedChanged = false;
+    for (let i = 0; i < currentFills.length; i++) {
+      const fill = currentFills[i];
+      if (fill.type === "SOLID") {
+        for (const adv of fillMappings) {
+          if (adv.type === "hex") {
+            const hexColor = rgbToHex(fill.color);
+            if (hexColor.toUpperCase() === adv.from.toUpperCase()) {
+              const targetVariable = importedVariablesMap[adv.to];
+              if (targetVariable) {
+                try {
+                  currentFills[i] = figma.variables.setBoundVariableForPaint(fill, "color", targetVariable);
+                  advancedChanged = true;
+                  break;
+                } catch {}
+              }
+            }
+          }
+          if (adv.type === "variable" && fill.boundVariables?.color) {
+            const varKey = extractPureKey(fill.boundVariables.color.id);
+            if (varKey && varKey === adv.from) {
+              const targetVariable = importedVariablesMap[adv.to];
+              if (targetVariable) {
+                try {
+                  currentFills[i] = figma.variables.setBoundVariableForPaint(fill, "color", targetVariable);
+                  advancedChanged = true;
+                  break;
+                } catch {}
+              }
+            }
+          }
+        }
+      }
+    }
+    if (advancedChanged) {
+      try {
+        node.fills = currentFills;
+        changed = true;
+      } catch {}
+    }
+  }
 
   // --- Process Fills by Style ---
   let fillStyleProcessed = false;
@@ -136,11 +189,64 @@ function convertFills(node: SceneNode, importedVariablesMap: Record<string, Vari
  * Attempts to convert the strokes of a node to use variables.
  * Returns true if any conversion was made.
  */
-function convertStrokes(node: SceneNode, importedVariablesMap: Record<string, Variable>): boolean {
+function convertStrokes(
+  node: SceneNode,
+  importedVariablesMap: Record<string, Variable>,
+  enabledAdvancedMappings?: import("./advancedMappings").AdvancedMappingEntry[]
+): boolean {
   if (!("fills" in node && "strokes" in node)) return false;
 
   const originalStrokes = Array.isArray(node.strokes) ? JSON.stringify(node.strokes) : null;
   let changed = false;
+
+  // --- Advanced Mapping適用 ---
+  if (enabledAdvancedMappings && Array.isArray(node.strokes)) {
+    // strokeのみ適用
+    const strokeMappings = enabledAdvancedMappings.filter(
+      (adv) => adv.target === "stroke"
+    );
+    const currentStrokes = JSON.parse(JSON.stringify(node.strokes)) as Paint[];
+    let advancedChanged = false;
+    for (let i = 0; i < currentStrokes.length; i++) {
+      const stroke = currentStrokes[i];
+      if (stroke.type === "SOLID") {
+        for (const adv of strokeMappings) {
+          if (adv.type === "hex") {
+            const hexColor = rgbToHex(stroke.color);
+            if (hexColor.toUpperCase() === adv.from.toUpperCase()) {
+              const targetVariable = importedVariablesMap[adv.to];
+              if (targetVariable) {
+                try {
+                  currentStrokes[i] = figma.variables.setBoundVariableForPaint(stroke, "color", targetVariable);
+                  advancedChanged = true;
+                  break;
+                } catch {}
+              }
+            }
+          }
+          if (adv.type === "variable" && stroke.boundVariables?.color) {
+            const varKey = extractPureKey(stroke.boundVariables.color.id);
+            if (varKey && varKey === adv.from) {
+              const targetVariable = importedVariablesMap[adv.to];
+              if (targetVariable) {
+                try {
+                  currentStrokes[i] = figma.variables.setBoundVariableForPaint(stroke, "color", targetVariable);
+                  advancedChanged = true;
+                  break;
+                } catch {}
+              }
+            }
+          }
+        }
+      }
+    }
+    if (advancedChanged) {
+      try {
+        node.strokes = currentStrokes;
+        changed = true;
+      } catch {}
+    }
+  }
 
   // --- Process Strokes by Style ---
   let strokeStyleProcessed = false;
@@ -226,9 +332,14 @@ function convertStrokes(node: SceneNode, importedVariablesMap: Record<string, Va
   return changed;
 }
 
+import { AdvancedMappingEntry } from "./advancedMappings";
+
 export default function () {
-  on("CONVERT_COLORS", async () => {
+  on("CONVERT_COLORS", async (payload?: { advancedMappings?: AdvancedMappingEntry[] }) => {
     const selection = figma.currentPage.selection;
+
+    // Advanced Optionsで有効なマッピング
+    const enabledAdvancedMappings: AdvancedMappingEntry[] = payload?.advancedMappings ?? [];
 
     if (selection.length === 0) {
       notifyAndEmitError("Please select one or more frames or nodes.");
@@ -246,7 +357,7 @@ export default function () {
 
     emit("PROGRESS_UPDATE", `Found ${allNodesToProcess.length} nodes to process. Importing variables...`);
 
-    // Gather all variable keys from mappings
+    // Gather all variable keys from mappings + advancedMappings
     const variableKeysToImportMap: { [key: string]: boolean } = {};
     styleToVariableMappings.forEach((mapping) => {
       if (mapping.mappedKey) variableKeysToImportMap[mapping.mappedKey] = true;
@@ -256,6 +367,9 @@ export default function () {
     });
     rgbToVariableMappings.forEach((mapping) => {
       if (mapping.mappedKey) variableKeysToImportMap[mapping.mappedKey] = true;
+    });
+    enabledAdvancedMappings.forEach((mapping) => {
+      variableKeysToImportMap[mapping.to] = true;
     });
 
     const uniqueVariableKeys = Object.keys(variableKeysToImportMap);
@@ -275,8 +389,9 @@ export default function () {
           emit("PROGRESS_UPDATE", `Processing node ${processedNodes}/${allNodesToProcess.length}... (${node.name})`);
         }
 
-        const fillResult = convertFills(node, importedVariablesMap);
-        const strokeResult = convertStrokes(node, importedVariablesMap);
+        // Advanced Mappingを適用する変換ロジックを追加する必要あり
+        const fillResult = convertFills(node, importedVariablesMap, enabledAdvancedMappings);
+        const strokeResult = convertStrokes(node, importedVariablesMap, enabledAdvancedMappings);
 
         if (fillResult || strokeResult) {
           nodeConverted = true;
