@@ -14,7 +14,7 @@ import {
 import { emit, on } from '@create-figma-plugin/utilities';
 import { h } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
-import { defaultAdvancedMappings, AdvancedMappingEntry } from './advancedMappings';
+import { defaultAdvancedMappings, AdvancedMappingEntry } from './mappings/advancedMappings';
 
 // Fallback for loading icon: use a spinning emoji or a simple text
 function LoadingIcon() {
@@ -54,11 +54,11 @@ function Plugin() {
   const [convertedNodes, setConvertedNodes] = useState<string>('N/A');
   const [status, setStatus] = useState<StatusType>("ready");
 
-  // タブ状態: "main" or "advanced"
+  // Tab state: "main" or "advanced"
   const [tabId, setTabId] = useState<string>("main");
-  // Advanced Optionsのチェックボックス状態
+  // Checkbox state for Advanced Options
   const [advancedMappings, setAdvancedMappings] = useState<AdvancedMappingEntry[]>(
-    defaultAdvancedMappings.map((entry) => ({ ...entry }))
+    defaultAdvancedMappings.map((entry: AdvancedMappingEntry) => ({ ...entry }))
   );
 
   const handleAdvancedMappingChange = (id: string) => {
@@ -75,7 +75,7 @@ function Plugin() {
     setTotalNodes('N/A');
     setConvertedNodes('N/A');
     setStatus("processing");
-    // 有効なAdvanced Mappingのみ送信
+    // Send only enabled Advanced Mappings
     const enabledAdvancedMappings = advancedMappings.filter((entry) => entry.enabled);
     emit('CONVERT_COLORS', { advancedMappings: enabledAdvancedMappings });
   }, [advancedMappings]);
@@ -116,7 +116,7 @@ function Plugin() {
       </Stack>
       <Divider />
       <VerticalSpace space="small" />
-      {/* タブ切り替え */}
+      {/* Tab switch */}
       <Tabs
         options={[
           { value: "main", children: "Main" },
@@ -211,7 +211,7 @@ function Plugin() {
             <Text style={{ color: "#888", fontSize: 11, marginBottom: 4 }}>
               Enable additional mappings for special cases. Use with caution.
             </Text>
-            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>Fill (塗り) 用</Text>
+            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>For Fill</Text>
             {advancedMappings.filter(e => e.target === "fill").map((entry) => (
               <Checkbox
                 key={entry.id}
@@ -226,7 +226,7 @@ function Plugin() {
                 ) : null}
               </Checkbox>
             ))}
-            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>Stroke (線) 用</Text>
+            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>For Stroke</Text>
             {advancedMappings.filter(e => e.target === "stroke").map((entry) => (
               <Checkbox
                 key={entry.id}
