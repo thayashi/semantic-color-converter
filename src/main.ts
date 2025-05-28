@@ -351,7 +351,7 @@ export default function () {
       return;
     }
 
-    emit("PROGRESS_UPDATE", `Found ${allNodesToProcess.length} nodes to process. Importing variables...`);
+    figma.notify(`Found ${allNodesToProcess.length} nodes to process. Importing variables...`);
 
     // Gather all variable keys from mappings + advancedMappings
     const variableKeysToImportMap: { [key: string]: boolean } = {};
@@ -371,7 +371,7 @@ export default function () {
     const uniqueVariableKeys = Object.keys(variableKeysToImportMap);
     const importedVariablesMap = await importVariables(uniqueVariableKeys);
 
-    emit("PROGRESS_UPDATE", "Variables imported. Starting node conversion...");
+    figma.notify("Variables imported. Starting node conversion...");
 
     let processedNodes = 0;
     let convertedNodes = 0;
@@ -382,7 +382,7 @@ export default function () {
         let nodeConverted = false;
 
         if (processedNodes % 10 === 0 || processedNodes === allNodesToProcess.length) {
-          emit("PROGRESS_UPDATE", `Processing node ${processedNodes}/${allNodesToProcess.length}... (${node.name})`);
+          // Progress notification removed (no longer needed in UI)
         }
 
         // Add conversion logic to apply Advanced Mapping
@@ -398,7 +398,6 @@ export default function () {
         }
       }
 
-      emit("PROGRESS_UPDATE", `Conversion complete. Processed ${processedNodes} nodes.`);
       figma.notify(`Conversion complete. Processed ${processedNodes} nodes.`);
       emit("NODES_CONVERTED", { converted: convertedNodes });
       emit("CONVERSION_COMPLETE");
