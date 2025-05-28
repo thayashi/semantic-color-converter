@@ -48,7 +48,6 @@ function getStatusInfo(status: StatusType) {
 }
 
 function Plugin() {
-  const [progressMessage, setProgressMessage] = useState<string>('Ready.');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [totalNodes, setTotalNodes] = useState<string>('N/A');
   const [convertedNodes, setConvertedNodes] = useState<string>('N/A');
@@ -70,7 +69,6 @@ function Plugin() {
   };
 
   const handleConvertButtonClick = useCallback(function () {
-    setProgressMessage('Starting conversion...');
     setIsProcessing(true);
     setTotalNodes('N/A');
     setConvertedNodes('N/A');
@@ -80,10 +78,6 @@ function Plugin() {
     emit('CONVERT_COLORS', { advancedMappings: enabledAdvancedMappings });
   }, [advancedMappings]);
 
-  on('PROGRESS_UPDATE', (message: string) => {
-    setProgressMessage(message);
-    setStatus("processing");
-  });
 
   on('NODES_FOUND', ({ total }) => {
     setTotalNodes(String(total));
@@ -106,21 +100,10 @@ function Plugin() {
   return (
     <Container space="small">
       <VerticalSpace space="small" />
-      <Stack space="extraSmall">
-        <Text style={{ fontWeight: 600, fontSize: 15 }}>
-          Semantic Color Converter
-        </Text>
-        <Text style={{ color: "#888", fontSize: 12 }}>
-          Convert selected Figma nodes to use semantic color variables.
-        </Text>
-      </Stack>
-      <Divider />
-      <VerticalSpace space="small" />
-      {/* Tab switch */}
       <Tabs
         options={[
-          { value: "main", children: "Main" },
-          { value: "advanced", children: "Advanced Options" }
+          { value: "main", children: "" },
+          { value: "advanced", children: "" }
         ]}
         value={tabId}
         onChange={event => setTabId(event.currentTarget.value)}
@@ -179,22 +162,6 @@ function Plugin() {
                 </Text>
               </span>
             </Columns>
-            <TextboxMultiline
-              rows={2}
-              value={progressMessage}
-              style={{
-                background: "#222",
-                color: "#fff",
-                border: "1px solid #444",
-                borderRadius: 6,
-                fontSize: 13,
-                marginTop: 2,
-                resize: "none",
-                minHeight: 32,
-                maxHeight: 38,
-                overflow: "hidden",
-              }}
-            />
           </Stack>
           <VerticalSpace space="medium" />
           <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
@@ -205,12 +172,6 @@ function Plugin() {
       ) : (
         <div>
           <Stack space="extraSmall">
-            <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>
-              Advanced Options
-            </Text>
-            <Text style={{ color: "#888", fontSize: 11, marginBottom: 4 }}>
-              Enable additional mappings for special cases. Use with caution.
-            </Text>
             <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>For Fill</Text>
             {advancedMappings.filter(e => e.target === "fill").map((entry) => (
               <Checkbox
