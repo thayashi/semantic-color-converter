@@ -39,7 +39,7 @@ export const defaultAdvancedMappings: AdvancedMappingEntry[] = [
     id: "fill-ffffff-bgcard2",
     type: "hex",
     key: "#FFFFFF",
-    mappedKey: "bg-card2-variable-id",
+    mappedKey: "c4383e8fbac0ab0621d3cf1c67e151706959c092",
     label: "fill color: #ffffff → bg-card2",
     enabled: false,
     target: "fill"

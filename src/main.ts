@@ -4,7 +4,7 @@ import { variableToVariableMappings } from "./mappings/variableToVariableMapping
 import { rgbToVariableMappings } from "./mappings/rgbToVariableMappings";
 import { rgbToHex, RGB } from "./utils/rgbToHex";
 import { extractPureKey } from "./utils/extractVariableKey";
-
+import { AdvancedMappingEntry } from "./mappings/advancedMappings";
 import { collectTargetNodes } from "./logic/collectTargetNodes";
 
 /**
@@ -43,7 +43,7 @@ async function importVariables(variableKeys: string[]): Promise<Record<string, V
 function convertFills(
   node: SceneNode,
   importedVariablesMap: Record<string, Variable>,
-  enabledAdvancedMappings?: import("./mappings/advancedMappings").AdvancedMappingEntry[]
+  enabledAdvancedMappings?: AdvancedMappingEntry[]
 ): boolean {
   if (!("fills" in node && "strokes" in node)) return false;
 
@@ -190,7 +190,7 @@ function convertFills(
 function convertStrokes(
   node: SceneNode,
   importedVariablesMap: Record<string, Variable>,
-  enabledAdvancedMappings?: import("./mappings/advancedMappings").AdvancedMappingEntry[]
+  enabledAdvancedMappings?: AdvancedMappingEntry[]
 ): boolean {
   if (!("fills" in node && "strokes" in node)) return false;
 
@@ -329,8 +329,6 @@ function convertStrokes(
   }
   return changed;
 }
-
-import { AdvancedMappingEntry } from "./mappings/advancedMappings";
 
 export default function () {
   on("CONVERT_COLORS", async (payload?: { advancedMappings?: AdvancedMappingEntry[] }) => {
