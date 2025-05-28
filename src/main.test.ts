@@ -1,4 +1,4 @@
-import { collectTargetNodes } from './logic';
+import { collectTargetNodes } from './logic/collectTargetNodes';
 
 // Mock types for SceneNode
 type MockSceneNode = {
