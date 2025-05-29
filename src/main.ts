@@ -62,6 +62,21 @@ function convertFills(
       const fill = currentFills[i];
       if (fill.type === "SOLID") {
         for (const adv of fillMappings) {
+          // --- Advanced Mapping: style to variable ---
+          if (adv.type === "style" && node.fillStyleId && typeof node.fillStyleId === "string") {
+            const styleKey = extractPureKey(node.fillStyleId);
+            if (styleKey === adv.key) {
+              const targetVariable = importedVariablesMap[adv.mappedKey];
+              if (targetVariable) {
+                try {
+                  node.fillStyleId = "";
+                  currentFills[i] = figma.variables.setBoundVariableForPaint(fill, "color", targetVariable);
+                  advancedChanged = true;
+                  break;
+                } catch {}
+              }
+            }
+          }
           if (adv.type === "hex") {
             const hexColor = rgbToHex(fill.color);
             if (hexColor.toUpperCase() === adv.key.toUpperCase()) {
@@ -209,6 +224,21 @@ function convertStrokes(
       const stroke = currentStrokes[i];
       if (stroke.type === "SOLID") {
         for (const adv of strokeMappings) {
+          // --- Advanced Mapping: style to variable ---
+          if (adv.type === "style" && node.strokeStyleId && typeof node.strokeStyleId === "string") {
+            const styleKey = extractPureKey(node.strokeStyleId);
+            if (styleKey === adv.key) {
+              const targetVariable = importedVariablesMap[adv.mappedKey];
+              if (targetVariable) {
+                try {
+                  node.strokeStyleId = "";
+                  currentStrokes[i] = figma.variables.setBoundVariableForPaint(stroke, "color", targetVariable);
+                  advancedChanged = true;
+                  break;
+                } catch {}
+              }
+            }
+          }
           if (adv.type === "hex") {
             const hexColor = rgbToHex(stroke.color);
             if (hexColor.toUpperCase() === adv.key.toUpperCase()) {
