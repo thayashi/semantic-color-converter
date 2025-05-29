@@ -1,5 +1,5 @@
 // Types for advanced mappings
-export type AdvancedMappingType = "hex" | "variable";
+export type AdvancedMappingType = "hex" | "variable" | "style";
 export type PaintTarget = "fill" | "stroke";
 
 export interface AdvancedMappingEntry {
@@ -69,6 +69,28 @@ export const defaultAdvancedMappings: AdvancedMappingEntry[] = [
     mappedKey: "varid2",
     label: "variable id: varid1 → varid2 (stroke)",
     enabled: false,
+    target: "stroke"
+  },
+  // Example: style to variable mapping for fill
+  {
+    id: "fill-styleid-bgcard",
+    type: "style",
+    key: "STYLE_ID_HERE", // Replace with actual style key
+    mappedKey: "VARIABLE_ID_HERE", // Replace with actual variable id
+    label: "fill style: STYLE_ID_HERE → bg-card",
+    enabled: false,
+    description: "Convert fill style to bg-card variable (fill only)",
+    target: "fill"
+  },
+  // Example: style to variable mapping for stroke
+  {
+    id: "stroke-styleid-bgcard",
+    type: "style",
+    key: "STYLE_ID_HERE", // Replace with actual style key
+    mappedKey: "VARIABLE_ID_HERE", // Replace with actual variable id
+    label: "stroke style: STYLE_ID_HERE → bg-card",
+    enabled: false,
+    description: "Convert stroke style to bg-card variable (stroke only)",
     target: "stroke"
   }
 ];
