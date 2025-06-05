@@ -360,6 +360,8 @@ function convertStrokes(
   return changed;
 }
 
+const NODE_LIMIT = 12;
+
 export default function () {
   on("CONVERT_COLORS", async (payload?: { advancedMappings?: AdvancedMappingEntry[] }) => {
     const selection = figma.currentPage.selection;
@@ -373,6 +375,12 @@ export default function () {
     }
 
     const allNodesToProcess = collectTargetNodes(selection);
+
+    // Node limit check
+    if (allNodesToProcess.length > NODE_LIMIT) {
+      emit("SHOW_NODE_LIMIT_MODAL", { nodeLimit: NODE_LIMIT });
+      return;
+    }
 
     emit("NODES_FOUND", { total: allNodesToProcess.length });
 
