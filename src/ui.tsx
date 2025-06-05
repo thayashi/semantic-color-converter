@@ -10,6 +10,7 @@ import {
   Divider,
   Tabs,
   Checkbox,
+  Modal,
 } from '@create-figma-plugin/ui';
 import { emit, on } from '@create-figma-plugin/utilities';
 import { h } from 'preact';
@@ -53,6 +54,10 @@ function Plugin() {
   const [convertedNodes, setConvertedNodes] = useState<string>('N/A');
   const [status, setStatus] = useState<StatusType>("ready");
 
+  // Modal for node limit
+  const [showNodeLimitModal, setShowNodeLimitModal] = useState<boolean>(false);
+  const [nodeLimit, setNodeLimit] = useState<number>(3000);
+
   // Tab state: "main" or "advanced"
   const [tabId, setTabId] = useState<string>("main");
   // Checkbox state for Advanced Options
@@ -87,6 +92,20 @@ function Plugin() {
     setConvertedNodes(String(converted));
   });
 
+  // Listen for node limit modal event
+  on('SHOW_NODE_LIMIT_MODAL', ({ nodeLimit }) => {
+    setNodeLimit(nodeLimit);
+    setShowNodeLimitModal(true);
+    setIsProcessing(false);
+    setStatus("ready");
+    setTotalNodes('N/A');
+    setConvertedNodes('N/A');
+  });
+
+  const handleCloseNodeLimitModal = () => {
+    setShowNodeLimitModal(false);
+  };
+
   const handleFinish = (type: StatusType) => {
     setIsProcessing(false);
     setStatus(type);
@@ -99,117 +118,128 @@ function Plugin() {
 
   return (
     <Container space="small">
-      <VerticalSpace space="small" />
-      <Tabs
-        options={[
-          { value: "main", children: "" },
-          { value: "advanced", children: "" }
-        ]}
-        value={tabId}
-        onChange={event => setTabId(event.currentTarget.value)}
-      />
-      <VerticalSpace space="small" />
-      {tabId === "main" ? (
-        <div>
-          <Stack space="extraSmall">
-            <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Node Summary</Text>
-            <Columns space="extraSmall">
-              <Stack space="extraSmall">
-                <Text style={{ color: "#888", fontSize: 11 }}>Total Nodes</Text>
-                <Text
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 16,
-                    color: "#007AFF",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {totalNodes}
-                </Text>
-              </Stack>
-              <Stack space="extraSmall">
-                <Text style={{ color: "#888", fontSize: 11 }}>Converted</Text>
-                <Text
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 16,
-                    color: "#18A058",
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {convertedNodes}
-                </Text>
-              </Stack>
-            </Columns>
-          </Stack>
+      {showNodeLimitModal && (
+        <Modal title="Too Many Nodes Selected" onClose={handleCloseNodeLimitModal} open={true}>
+          <Text>
+            {`The number of selected nodes exceeds the limit (${nodeLimit}). Please reduce your selection and try again.`}
+          </Text>
           <VerticalSpace space="small" />
-          <Divider />
-          <VerticalSpace space="small" />
-          <Stack space="extraSmall">
-            <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Status</Text>
-            <Columns space="extraSmall">
-              <span style={{ display: "flex", alignItems: "center" }}>
-                {statusInfo.icon}
-                <Text
-                  style={{
-                    color: statusInfo.color,
-                    fontWeight: 600,
-                    marginLeft: 6,
-                    fontSize: 14,
-                  }}
-                >
-                  {statusInfo.label}
-                </Text>
-              </span>
-            </Columns>
-          </Stack>
-          <VerticalSpace space="medium" />
-          <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
-            {isProcessing ? 'Converting...' : 'Convert Selected Frames'}
-          </Button>
-          <VerticalSpace space="small" />
-        </div>
-      ) : (
-        <div>
-          <Stack space="extraSmall">
-            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>For Fill</Text>
-            {advancedMappings.filter(e => e.target === "fill").map((entry) => (
-              <Checkbox
-                key={entry.id}
-                value={entry.enabled}
-                onChange={() => handleAdvancedMappingChange(entry.id)}
-              >
-                {entry.label}
-                {entry.description ? (
-                  <span style={{ color: "#888", fontSize: 10, marginLeft: 4 }}>
-                    ({entry.description})
-                  </span>
-                ) : null}
-              </Checkbox>
-            ))}
-            <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>For Stroke</Text>
-            {advancedMappings.filter(e => e.target === "stroke").map((entry) => (
-              <Checkbox
-                key={entry.id}
-                value={entry.enabled}
-                onChange={() => handleAdvancedMappingChange(entry.id)}
-              >
-                {entry.label}
-                {entry.description ? (
-                  <span style={{ color: "#888", fontSize: 10, marginLeft: 4 }}>
-                    ({entry.description})
-                  </span>
-                ) : null}
-              </Checkbox>
-            ))}
-          </Stack>
-          <VerticalSpace space="medium" />
-          <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
-            {isProcessing ? 'Converting...' : 'Convert Selected Frames'}
-          </Button>
-          <VerticalSpace space="small" />
-        </div>
+          <Button onClick={handleCloseNodeLimitModal}>OK</Button>
+        </Modal>
       )}
+      <div>
+        <VerticalSpace space="small" />
+        <Tabs
+          options={[
+            { value: "main", children: "" },
+            { value: "advanced", children: "" }
+          ]}
+          value={tabId}
+          onChange={event => setTabId(event.currentTarget.value)}
+        />
+        <VerticalSpace space="small" />
+        {tabId === "main" ? (
+          <div>
+            <Stack space="extraSmall">
+              <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Node Summary</Text>
+              <Columns space="extraSmall">
+                <Stack space="extraSmall">
+                  <Text style={{ color: "#888", fontSize: 11 }}>Total Nodes</Text>
+                  <Text
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 16,
+                      color: "#007AFF",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {totalNodes}
+                  </Text>
+                </Stack>
+                <Stack space="extraSmall">
+                  <Text style={{ color: "#888", fontSize: 11 }}>Converted</Text>
+                  <Text
+                    style={{
+                      fontWeight: 600,
+                      fontSize: 16,
+                      color: "#18A058",
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {convertedNodes}
+                  </Text>
+                </Stack>
+              </Columns>
+            </Stack>
+            <VerticalSpace space="small" />
+            <Divider />
+            <VerticalSpace space="small" />
+            <Stack space="extraSmall">
+              <Text style={{ fontWeight: 500, fontSize: 13, marginBottom: 2 }}>Status</Text>
+              <Columns space="extraSmall">
+                <span style={{ display: "flex", alignItems: "center" }}>
+                  {statusInfo.icon}
+                  <Text
+                    style={{
+                      color: statusInfo.color,
+                      fontWeight: 600,
+                      marginLeft: 6,
+                      fontSize: 14,
+                    }}
+                  >
+                    {statusInfo.label}
+                  </Text>
+                </span>
+              </Columns>
+            </Stack>
+            <VerticalSpace space="medium" />
+            <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
+              {isProcessing ? 'Converting...' : 'Convert Selected Frames'}
+            </Button>
+            <VerticalSpace space="small" />
+          </div>
+        ) : (
+          <div>
+            <Stack space="extraSmall">
+              <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>For Fill</Text>
+              {advancedMappings.filter(e => e.target === "fill").map((entry) => (
+                <Checkbox
+                  key={entry.id}
+                  value={entry.enabled}
+                  onChange={() => handleAdvancedMappingChange(entry.id)}
+                >
+                  {entry.label}
+                  {entry.description ? (
+                    <span style={{ color: "#888", fontSize: 10, marginLeft: 4 }}>
+                      ({entry.description})
+                    </span>
+                  ) : null}
+                </Checkbox>
+              ))}
+              <Text style={{ fontWeight: 500, fontSize: 12, marginTop: 8 }}>For Stroke</Text>
+              {advancedMappings.filter(e => e.target === "stroke").map((entry) => (
+                <Checkbox
+                  key={entry.id}
+                  value={entry.enabled}
+                  onChange={() => handleAdvancedMappingChange(entry.id)}
+                >
+                  {entry.label}
+                  {entry.description ? (
+                    <span style={{ color: "#888", fontSize: 10, marginLeft: 4 }}>
+                      ({entry.description})
+                    </span>
+                  ) : null}
+                </Checkbox>
+              ))}
+            </Stack>
+            <VerticalSpace space="medium" />
+            <Button fullWidth onClick={handleConvertButtonClick} disabled={isProcessing}>
+              {isProcessing ? 'Converting...' : 'Convert Selected Frames'}
+            </Button>
+            <VerticalSpace space="small" />
+          </div>
+        )}
+      </div>
     </Container>
   );
 }
